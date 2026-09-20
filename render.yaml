@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: krystalball
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: master
+    repo: https://github.com/Suryanarayana94/krystalball-main.git
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit

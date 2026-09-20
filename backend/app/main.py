@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.demo_data import build_demo_inventory_data
@@ -152,12 +155,12 @@ def summary() -> dict[str, Any]:
 
 
 @app.post("/api/upload/inventory")
-def upload_inventory(file: Any) -> dict[str, Any]:
+async def upload_inventory(file: UploadFile = File(...)) -> dict[str, Any]:
     try:
         if file is None:
             return {"success": False, "data": None, "message": "No file uploaded.", "error": "Missing file"}
 
-        csv_contents = file.file.read().decode("utf-8")
+        csv_contents = (await file.read()).decode("utf-8")
         parsed = parse_inventory_csv(__import__("io").StringIO(csv_contents))
 
         if not parsed["valid"]:
@@ -181,6 +184,23 @@ def upload_inventory(file: Any) -> dict[str, Any]:
 @app.get("/api/ready")
 def ready() -> dict[str, Any]:
     return {"success": True, "data": {"ready": True}, "message": None, "error": None}
+
+
+frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if frontend_dist.is_dir():
+    app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="frontend-assets")
+
+    @app.get("/{full_path:path}")
+    def serve_frontend(full_path: str):
+        if full_path == "api" or full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+
+        requested_file = (frontend_dist / full_path).resolve()
+        frontend_root = frontend_dist.resolve()
+        if requested_file.is_file() and frontend_root in requested_file.parents:
+            return FileResponse(requested_file)
+
+        return FileResponse(frontend_root / "index.html")
 
 
 if __name__ == "__main__":

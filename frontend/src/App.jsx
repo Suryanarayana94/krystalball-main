@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
 const formatNumber = (value) => Number(value ?? 0).toLocaleString(undefined, { maximumFractionDigits: 1 })
-const requiredUploadColumns = ['Date Time Served', 'Bar Name', 'Brand Name', 'Opening Balance', 'Purchase', 'Consumed', 'Closing Balance']
+const apiBase = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000' : '')
+const apiUrl = (path) => `${apiBase}/api${path}`
 
 function App() {
   const [summary, setSummary] = useState(null)
@@ -19,9 +20,9 @@ function App() {
     const loadDashboard = async () => {
       try {
         const [summaryRes, inventoryRes, recRes] = await Promise.all([
-          fetch('http://127.0.0.1:8000/api/dashboard/summary'),
-          fetch('http://127.0.0.1:8000/api/inventory'),
-          fetch('http://127.0.0.1:8000/api/recommendations'),
+          fetch(apiUrl('/dashboard/summary')),
+          fetch(apiUrl('/inventory')),
+          fetch(apiUrl('/recommendations')),
         ])
 
         const summaryData = await summaryRes.json()
@@ -72,7 +73,7 @@ function App() {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await fetch('http://127.0.0.1:8000/api/upload/inventory', {
+      const response = await fetch(apiUrl('/upload/inventory'), {
         method: 'POST',
         body: formData,
       })
