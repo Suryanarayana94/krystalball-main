@@ -1,0 +1,1 @@
+"""Hotel inventory backend package."""
